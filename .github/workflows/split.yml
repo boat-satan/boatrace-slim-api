@@ -1,0 +1,48 @@
+name: Build Slim Programs
+
+on:
+  schedule:
+    - cron: "0 21 * * *"   # UTC 21:00 = JST 06:00
+  workflow_dispatch:
+    inputs:
+      target_dates:
+        description: "Comma-separated YYYYMMDD list"
+        required: false
+        default: ""
+
+env:
+  TZ: Asia/Tokyo
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build slim JSON
+        env:
+          TARGET_DATES: ${{ github.event.inputs.target_dates }}
+        run: node scripts/split.js
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
